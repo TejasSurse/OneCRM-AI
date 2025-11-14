@@ -11,12 +11,15 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@tailwindcss/vite": "^4.1.13",
-    "framer-motion": "^12.23.22",
+    "@tailwindcss/vite": "^4.1.17",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.553.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.63.0",
-    "tailwindcss": "^4.1.13",
+    "react-parallax-tilt": "^1.7.313",
+    "react-router-dom": "^7.9.5",
+    "tailwindcss": "^4.1.17",
     "zod": "^4.1.11"
   },
   "devDependencies": {

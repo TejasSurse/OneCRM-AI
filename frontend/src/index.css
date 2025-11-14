@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary-50:  #eef6ff;
+  --color-primary-100: #d7ecff;
+  --color-primary-200: #bce0ff;
+  --color-primary-300: #92d0ff;
+  --color-primary-400: #5fb8ff;
+  --color-primary-500: #2f9eff;
+  --color-primary-600: #0f86ff;
+  --color-primary-700: #0666d6;
+  --color-primary-800: #064f9f;
+  --color-primary-900: #05366b;
+
+  --color-accent-500: #ffb86b;
+}
+
+/* optional: shadows and 3D tilt helper */
+@utility shadow-card {
+  box-shadow: 0 8px 28px rgba(15,23,42,0.08);
+}
+
+@utility shadow-focus {
+  box-shadow: 0 10px 40px rgba(47,158,255,0.12);
+}
+
+@utility perspective-1000 {
+  perspective: 1000px;
+}
+
+/* smooth scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(47,158,255,0.25) transparent;
+}
+
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(47,158,255,0.22);
+  border-radius: 9999px;
+}
