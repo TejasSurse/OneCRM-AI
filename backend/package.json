@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "One Solution for all problem for sme Business CRM",
   "main": "app.js",
-  "type" : "commonjs",
+  "type": "commonjs",
   "scripts": {
     "dev": "nodemon -r dotenv/config app.js"
   },
@@ -16,9 +16,10 @@
   "author": "Tejas Sunil Surse",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "mongoose": "^8.18.2"
+    "mongoose": "^8.19.3"
   }
 }
