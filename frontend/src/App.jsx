@@ -13,7 +13,9 @@ import Leads from "./pages/Leads";
 import Customers from "./pages/Customers";
 import Support from "./pages/Support";
 import Settings from "./pages/Settings";
-
+import Form from "./components/Form";
+import EmailCampaigns from "./pages/Email";
+import ProductsServices from "./pages/Services";
 const App = () => {
   return (
     <Router>
@@ -23,10 +25,13 @@ const App = () => {
           <Navbar />
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/leads" element={<Leads />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/admin/leads" element={<Leads />} />
+            <Route path="/admin/customers" element={<Customers />} />
+            <Route path="/admin/support" element={<Support />} />
+            <Route path="/admin/settings" element={<Settings />} />
+            <Route path="/admin/email" element={<EmailCampaigns/>}/>
+            <Route path="/admin/userform" element={<Form />} />
+            <Route path="/admin/pns" element={<ProductsServices />} />
           </Routes>
         </div>
       </div>

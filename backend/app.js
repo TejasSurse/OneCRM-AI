@@ -8,6 +8,7 @@ const cors = require('cors');
 const connectDB = require("./db/index.js");
 const userRoutes = require("./routes/user.routes.js");
 const employeeRoutes = require("./routes/employee.routes.js"); 
+const pnsRoutes = require("./routes/pns.routes");
 
 // Connect to MongoDB
 connectDB();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/user', userRoutes);
 app.use('/employee', employeeRoutes);
+app.use("/pns", pnsRoutes);
 
 // Start server
 app.listen(3000, () => {

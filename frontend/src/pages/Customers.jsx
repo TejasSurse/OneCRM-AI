@@ -1,392 +1,492 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UserPlus, Upload, Download, Gift } from "lucide-react";
+import { UserPlus, Upload, Download, Gift, Eye, Trash2 } from "lucide-react";
+import axios from "axios";
 
 export default function Customers() {
   const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState(null);
+
   const [customers, setCustomers] = useState([]);
+  const [pns, setPns] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [viewData, setViewData] = useState(null);
+  const [search, setSearch] = useState("");
 
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     company: "",
-    address: "",
-    industry: "",
-    product: "",
+    description: "",
+    products: [],
+    services: [],
     contractValue: "",
     startDate: "",
-    status: "Active",
-    notes: "",
+    status: "active",
   });
 
-  const handleAdd = () => {
-    if (!form.name || !form.email) return;
-    setCustomers([...customers, form]);
+  // Fetch All Customers + All PNS
+  useEffect(() => {
+    fetchEverything();
+  }, []);
+
+  const fetchEverything = async () => {
+    setLoading(true);
+    try {
+      const [custRes, pnsRes] = await Promise.all([
+        axios.get("http://localhost:3000/user/getAllCustomers"),
+        axios.get("http://localhost:3000/pns/getAllPNS"),
+      ]);
+
+      setCustomers(custRes.data.data || []);
+      setPns(pnsRes.data.data || []);
+    } catch (err) {
+      console.error(err);
+      alert("Error fetching customers or products/services");
+    }
+    setLoading(false);
+  };
+
+  // ======================
+  //   Add / Update Customer
+  // ======================
+  const handleSubmit = async () => {
+    if (!form.name || !form.email) {
+      alert("Name + Email required");
+      return;
+    }
+
+    const payload = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      company: form.company,
+      description: form.description,
+      stage: 2,
+      status: form.status,
+      products: form.products,
+      services: form.services,
+      contractValue: Number(form.contractValue) || 0,
+      startDate: form.startDate || "",
+    };
+
+    try {
+      if (editId) {
+        await axios.put(
+          `http://localhost:3000/user/updateUser/${editId}`,
+          payload
+        );
+      } else {
+        await axios.post("http://localhost:3000/user/addUser", payload);
+      }
+
+      setShowModal(false);
+      setEditId(null);
+      resetForm();
+      fetchEverything();
+    } catch (err) {
+      console.error(err);
+      alert("Error saving customer");
+    }
+  };
+
+  const resetForm = () => {
     setForm({
       name: "",
       email: "",
       phone: "",
       company: "",
-      address: "",
-      industry: "",
-      product: "",
+      description: "",
+      products: [],
+      services: [],
       contractValue: "",
       startDate: "",
-      status: "Active",
-      notes: "",
+      status: "active",
     });
-    setShowModal(false);
   };
 
+  // ======================
+  //   Delete Customer
+  // ======================
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this customer?")) return;
+
+    try {
+      await axios.delete(`http://localhost:3000/user/deleteUser/${id}`);
+      fetchEverything();
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
+  };
+
+  // ======================
+  //   Toggle select PNS
+  // ======================
+  const toggleP = (id) => {
+    setForm((f) => ({
+      ...f,
+      products: f.products.includes(id)
+        ? f.products.filter((x) => x !== id)
+        : [...f.products, id],
+    }));
+  };
+
+  const toggleS = (id) => {
+    setForm((f) => ({
+      ...f,
+      services: f.services.includes(id)
+        ? f.services.filter((x) => x !== id)
+        : [...f.services, id],
+    }));
+  };
+
+  // ======================
+  //   Filter Customers
+  // ======================
+  const filtered = customers.filter((c) => {
+    const s = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(s) ||
+      c.email.toLowerCase().includes(s) ||
+      String(c.phone).includes(s)
+    );
+  });
+
+  // ======================
+  //   View Modal Hydration
+  // ======================
+  const hydrate = (c) => {
+    return {
+      ...c,
+      products: c.products || [],
+      services: c.services || [],
+    };
+  };
+
+  // ======================
+  //   Render UI
+  // ======================
   return (
-    <div className="min-h-screen bg-white p-8 text-slate-900 transition-all">
+    <div className="p-8 bg-white min-h-screen">
       {/* Header */}
-      <div className="flex flex-wrap justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold text-primary-800">
-            Customer Management
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Manage relationships and track customer success
-          </p>
-        </div>
+      <div className="flex justify-between mb-6">
+        <h1 className="text-3xl font-bold">Customer Management</h1>
+
         <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border px-3 py-2 rounded-lg"
+          />
+
           <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg shadow-card transition-all"
+            onClick={() => {
+              resetForm();
+              setEditId(null);
+              setShowModal(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
           >
             <UserPlus size={18} /> Add Customer
           </button>
-          <button className="flex items-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 px-4 py-2 rounded-lg border border-primary-100 transition-all">
-            <Gift size={18} /> Send Bulk Offer
-          </button>
-          <button className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition">
-            <Upload size={18} /> Import
-          </button>
-          <button className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition">
-            <Download size={18} /> Export
-          </button>
         </div>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search customers by name, email, or company..."
-          className="flex-1 min-w-[250px] border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-        />
-        <select className="border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none">
-          <option>All Status</option>
-          <option>Active</option>
-          <option>Inactive</option>
-        </select>
-        <select className="border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none">
-          <option>All Plans</option>
-          <option>Basic</option>
-          <option>Premium</option>
-          <option>Enterprise</option>
-        </select>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div className="bg-primary-50 border border-slate-200 p-5 rounded-2xl shadow-card">
-          <p className="text-sm text-slate-600">Active Customers</p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-1">
-            {customers.length}
+      <div className="grid grid-cols-3 gap-6 mb-6">
+        <div className="bg-blue-50 p-5 rounded-xl">
+          <p>Total Customers</p>
+          <h2 className="text-2xl font-bold">{customers.length}</h2>
+        </div>
+        <div className="bg-green-50 p-5 rounded-xl">
+          <p>Active</p>
+          <h2 className="text-2xl font-bold">
+            {customers.filter((c) => c.status === "active").length}
           </h2>
         </div>
-        <div className="bg-blue-50 border border-slate-200 p-5 rounded-2xl shadow-card">
-          <p className="text-sm text-slate-600">Total Revenue</p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-1">
-            ₹{customers.length * 12000}
-          </h2>
-        </div>
-        <div className="bg-amber-50 border border-slate-200 p-5 rounded-2xl shadow-card">
-          <p className="text-sm text-slate-600">Avg Satisfaction</p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-1">
-            {customers.length ? "92%" : "N/A"}
-          </h2>
-        </div>
-        <div className="bg-indigo-50 border border-slate-200 p-5 rounded-2xl shadow-card">
-          <p className="text-sm text-slate-600">Enterprise Clients</p>
-          <h2 className="text-2xl font-semibold text-slate-900 mt-1">
-            {customers.filter((c) => c.product === "Enterprise Solution").length}
+        <div className="bg-yellow-50 p-5 rounded-xl">
+          <p>Total Revenue</p>
+          <h2 className="text-2xl font-bold">
+            ₹
+            {customers
+              .reduce((sum, c) => sum + (c.totalRevenue || 0), 0)
+              .toLocaleString()}
           </h2>
         </div>
       </div>
 
-      {/* Customer Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-card overflow-hidden">
-        <table className="w-full border-collapse text-left">
-          <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-sm">
+      {/* Table */}
+      <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="py-3 px-4">Customer Details</th>
-              <th className="px-4">Subscription & Status</th>
-              <th className="px-4">Company</th>
-              <th className="px-4">Product</th>
+              <th className="px-4 py-3 text-left">Customer</th>
+              <th>Status</th>
+              <th>Products</th>
+              <th>Services</th>
+              <th>Revenue</th>
               <th className="px-4 text-right">Actions</th>
             </tr>
           </thead>
+
           <tbody>
-            {customers.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-500">
-                  No customers found matching your criteria.
+            {filtered.map((c) => (
+              <tr
+                key={c._id}
+                className="border-t hover:bg-gray-50 transition cursor-pointer"
+              >
+                <td className="px-4 py-3">
+                  <div className="font-semibold">{c.name}</div>
+                  <div className="text-sm text-gray-500">{c.email}</div>
+                </td>
+                <td>{c.status}</td>
+                <td>{(c.products || []).length}</td>
+                <td>{(c.services || []).length}</td>
+                <td>₹{c.totalRevenue}</td>
+
+                <td className="px-4 py-3 text-right">
+                  <button
+                    className="text-blue-600 mr-3"
+                    onClick={() => setViewData(hydrate(c))}
+                  >
+                    <Eye size={18} />
+                  </button>
+
+                  <button
+                    className="text-green-600 mr-3"
+                    onClick={() => {
+                      setEditId(c._id);
+                      setForm({
+                        name: c.name,
+                        email: c.email,
+                        phone: c.phone,
+                        company: c.company,
+                        description: c.description,
+                        products: c.products.map((p) => p._id),
+                        services: c.services.map((s) => s._id),
+                        contractValue: c.contractValue || "",
+                        startDate: c.startDate || "",
+                        status: c.status,
+                      });
+                      setShowModal(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="text-red-600"
+                    onClick={() => handleDelete(c._id)}
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
-            ) : (
-              customers.map((c, i) => (
-                <tr
-                  key={i}
-                  className="border-t border-slate-100 hover:bg-primary-50/40 transition"
-                >
-                  <td className="py-3 px-4">{c.name}</td>
-                  <td className="px-4">{c.status}</td>
-                  <td className="px-4">{c.company}</td>
-                  <td className="px-4">{c.product}</td>
-                  <td className="px-4 text-right">
-                    <button className="text-primary-600 hover:underline text-sm">
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Add Customer Modal */}
+      {/* ======================== */}
+      {/* VIEW MODAL */}
+      {/* ======================== */}
+      <AnimatePresence>
+        {viewData && (
+          <motion.div
+            className="fixed inset-0 bg-black/40 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => setViewData(null)}
+          >
+            <motion.div
+              className="bg-white p-6 rounded-xl w-full max-w-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold mb-4">{viewData.name}</h2>
+
+              <p>Email: {viewData.email}</p>
+              <p>Phone: {viewData.phone}</p>
+              <p>Company: {viewData.company}</p>
+
+              <h3 className="mt-4 font-semibold">Products</h3>
+              {(viewData.products || []).map((p) => (
+                <p key={p._id}>• {p.name} — ₹{p.cost}</p>
+              ))}
+
+              <h3 className="mt-4 font-semibold">Services</h3>
+              {(viewData.services || []).map((s) => (
+                <p key={s._id}>• {s.name} — ₹{s.cost}</p>
+              ))}
+
+              <h3 className="mt-4 font-semibold">
+                Total Revenue: ₹{viewData.totalRevenue}
+              </h3>
+
+              <button
+                onClick={() => setViewData(null)}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ======================== */}
+      {/* ADD / EDIT CUSTOMER */}
+      {/* ======================== */}
       <AnimatePresence>
         {showModal && (
           <motion.div
+            className="fixed inset-0 bg-black/40 flex items-center justify-center p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black/40 z-50"
+            onClick={() => setShowModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-focus p-8 w-[90%] max-w-2xl"
+              className="bg-white p-6 rounded-xl w-full max-w-3xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-2xl font-semibold text-primary-800 mb-2">
-                Add New Customer
+              <h2 className="text-xl font-bold mb-4">
+                {editId ? "Update Customer" : "Add Customer"}
               </h2>
-              <p className="text-slate-500 mb-6">
-                Enter the customer details to add them to your CRM system.
-              </p>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Full Name */}
+                <input
+                  placeholder="Name"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                />
+
+                <input
+                  placeholder="Email"
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm({ ...form, email: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                />
+
+                <input
+                  placeholder="Phone"
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm({ ...form, phone: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                />
+
+                <input
+                  placeholder="Company"
+                  value={form.company}
+                  onChange={(e) =>
+                    setForm({ ...form, company: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                />
+
+                <input
+                  placeholder="Contract Value"
+                  value={form.contractValue}
+                  onChange={(e) =>
+                    setForm({ ...form, contractValue: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                />
+
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) =>
+                    setForm({ ...form, startDate: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                />
+
+                <select
+                  value={form.status}
+                  onChange={(e) =>
+                    setForm({ ...form, status: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+
+                <textarea
+                  placeholder="Description"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  className="border px-3 py-2 rounded col-span-2"
+                  rows={3}
+                />
+              </div>
+
+              {/* PNS LIST */}
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                {/* Products */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
+                  <h3 className="font-semibold mb-2">Products</h3>
+                  <div className="max-h-40 overflow-y-auto border p-2 rounded">
+                    {pns
+                      .filter((x) => x.type === "product")
+                      .map((p) => (
+                        <label key={p._id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={form.products.includes(p._id)}
+                            onChange={() => toggleP(p._id)}
+                          />
+                          {p.name} (₹{p.cost})
+                        </label>
+                      ))}
+                  </div>
                 </div>
 
-                {/* Email */}
+                {/* Services */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="john@example.com"
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm({ ...form, email: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Phone *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+91 98765 43210"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm({ ...form, phone: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                </div>
-
-                {/* Company */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Acme Corp"
-                    value={form.company}
-                    onChange={(e) =>
-                      setForm({ ...form, company: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                </div>
-
-                {/* Address */}
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="123 Main St, City, State, ZIP"
-                    value={form.address}
-                    onChange={(e) =>
-                      setForm({ ...form, address: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                </div>
-
-                {/* Industry */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Industry
-                  </label>
-                  <select
-                    value={form.industry}
-                    onChange={(e) =>
-                      setForm({ ...form, industry: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  >
-                    <option value="">Select Industry</option>
-                    <option>Technology</option>
-                    <option>Healthcare</option>
-                    <option>Finance</option>
-                    <option>Education</option>
-                    <option>Retail</option>
-                    <option>Manufacturing</option>
-                    <option>Real Estate</option>
-                    <option>Consulting</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-
-                {/* Product */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Purchased Product/Service
-                  </label>
-                  <select
-                    value={form.product}
-                    onChange={(e) =>
-                      setForm({ ...form, product: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  >
-                    <option value="">Select Product</option>
-                    <option>Basic Package</option>
-                    <option>Premium Plan</option>
-                    <option>Enterprise Solution</option>
-                    <option>Custom Solution</option>
-                    <option>Consultation Services</option>
-                  </select>
-                </div>
-
-                {/* Contract Value */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Contract Value (₹)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="10000"
-                    value={form.contractValue}
-                    onChange={(e) =>
-                      setForm({ ...form, contractValue: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                </div>
-
-                {/* Start Date */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) =>
-                      setForm({ ...form, startDate: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={form.status}
-                    onChange={(e) =>
-                      setForm({ ...form, status: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  >
-                    <option>Active</option>
-                    <option>Inactive</option>
-                    <option>Pending</option>
-                    <option>Suspended</option>
-                  </select>
-                </div>
-
-                {/* Notes */}
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Notes
-                  </label>
-                  <textarea
-                    rows="3"
-                    placeholder="Any additional notes about this customer..."
-                    value={form.notes}
-                    onChange={(e) =>
-                      setForm({ ...form, notes: e.target.value })
-                    }
-                    className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 outline-none"
-                  />
+                  <h3 className="font-semibold mb-2">Services</h3>
+                  <div className="max-h-40 overflow-y-auto border p-2 rounded">
+                    {pns
+                      .filter((x) => x.type === "service")
+                      .map((s) => (
+                        <label key={s._id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={form.services.includes(s._id)}
+                            onChange={() => toggleS(s._id)}
+                          />
+                          {s.name} (₹{s.cost})
+                        </label>
+                      ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end mt-5 gap-3">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2 border border-slate-200 rounded-lg hover:bg-slate-50"
+                  className="px-4 py-2 border rounded"
                 >
                   Cancel
                 </button>
+
                 <button
-                  onClick={handleAdd}
-                  className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-card"
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
                 >
-                  Add Customer
+                  {editId ? "Update" : "Add Customer"}
                 </button>
               </div>
             </motion.div>

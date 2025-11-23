@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function UserWizard() {
+export default function Form() {
   const [step, setStep] = useState(1);
   const totalSteps = 4;
 

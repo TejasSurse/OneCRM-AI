@@ -14,8 +14,8 @@ const userSchema = new Schema({
     },
     email2: {
         type: String,
-        unique: true,
-        sparse: true // allows multiple null values
+        sparse: true, // allows multiple null values
+        default: null
     },
     phone: {
         type: Number,
@@ -24,10 +24,15 @@ const userSchema = new Schema({
     },
     phone2: {
         type: Number,
-        unique: true,
-        sparse: true // allows multiple null values
+        sparse: true, // allows multiple null values
+        default: null
     },
-    
+    company: {
+        type: String,
+    },
+    source: {
+        type: String,
+    },
     stage: {
         type: Number,
         enum: [1, 2, 0],
@@ -41,18 +46,26 @@ const userSchema = new Schema({
     description: {
         type: String,
     },
-    products: [{
-        type: Schema.Types.ObjectId,
-        ref: "Product"
-    }],
-    Services: [{
-        type: Schema.Types.ObjectId,
-        ref: "Service"
-    }],
-    remarks: [{
-        type: String,
-        timestamp: { type: Date, default: Date.now }
-    }],
+    products: [
+  { type: Schema.Types.ObjectId, ref: "PNS" }
+],
+services: [
+  { type: Schema.Types.ObjectId, ref: "PNS" }
+],
+
+    remarks: [
+  {
+    text: {
+      type: String,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }
+],
+
   // each admin or emp fetch user data on the basis of his remarsk there behaviour is genereated using ai 
 }, { timestamps: true });
 
